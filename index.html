@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A Very Important Message For You 💌</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
+
+  <style>
+  /* ── RESET ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:     #0a071a;
+    --card:   rgba(255,255,255,0.045);
+    --border: rgba(255,255,255,0.1);
+    --gold:   #f5c842;
+    --pink:   #ff6eb4;
+    --purple: #a855f7;
+    --rose:   #fb7185;
+    --text:   #f0eaf8;
+    --muted:  #9b8fb5;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; }
+
+  /* ── CANVAS LAYERS ──────────────────────────────────── */
+  #stars-canvas    { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  #hearts-canvas   { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+  #confetti-canvas { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+
+  /* ── SCREENS ────────────────────────────────────────── */
+  .screen {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px 16px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease;
+    overflow-y: auto;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* inner content wrapper — gets max-width, centered inside full-screen div */
+  .sc {
+    width: 100%; display: flex; flex-direction: column;
+    align-items: center; gap: 20px; padding-bottom: 52px;
+  }
+  .sc-xs  { max-width: 420px; }
+  .sc-sm  { max-width: 520px; }
+  .sc-md  { max-width: 600px; }
+  .sc-lg  { max-width: 760px; }
+
+  /* ── TYPOGRAPHY ─────────────────────────────────────── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 5vw, 36px);
+    text-align: center; line-height: 1.2;
+    background: linear-gradient(135deg, var(--gold), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .section-sub {
+    font-family: 'Inter', sans-serif; font-style: italic; font-weight: 300;
+    font-size: clamp(14px, 3.5vw, 17px);
+    color: rgba(210,195,235,0.85); text-align: center; line-height: 1.65;
+  }
+
+  /* ── BADGE ──────────────────────────────────────────── */
+  .badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); border: 1px solid rgba(245,200,66,0.45);
+    padding: 6px 18px; border-radius: 100px;
+    animation: pulse-badge 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-badge {
+    0%,100% { box-shadow: 0 0 0 0 rgba(245,200,66,0.3); }
+    50%      { box-shadow: 0 0 0 10px rgba(245,200,66,0); }
+  }
+
+  /* ── SCREEN 1: ENVELOPE ─────────────────────────────── */
+  .envelope-wrap {
+    width: 280px; height: 190px; cursor: pointer;
+    filter: drop-shadow(0 0 52px rgba(168,85,247,0.5));
+    transition: transform 0.35s ease;
+  }
+  .envelope-wrap:hover { transform: scale(1.06) rotate(-2deg); }
+  .envelope-wrap svg { width: 100%; height: 100%; }
+  .envelope-label { font-family: 'Dancing Script', cursive; font-size: 22px; color: var(--gold); animation: float 3s ease-in-out infinite; }
+  .tap-hint { font-size: 13px; color: var(--muted); animation: blink 1.6s ease-in-out infinite; }
+  @keyframes float { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
+  @keyframes blink  { 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
+
+  /* ── SCREEN 2: REASONS ──────────────────────────────── */
+  .reasons-list { list-style: none; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .reasons-list li {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 14px 18px; display: flex; align-items: flex-start; gap: 14px; font-size: 14px; line-height: 1.55;
+    transform: translateX(-60px); opacity: 0;
+    transition: transform 0.55s ease, opacity 0.55s ease;
+  }
+  .reasons-list li.visible { transform: translateX(0); opacity: 1; }
+  .reasons-list li .icon { font-size: 22px; flex-shrink: 0; }
+  .reason-text { color: var(--text); }
+  .reason-fine {
+    font-family: 'Inter', sans-serif; font-style: italic; font-weight: 300;
+    font-size: 12.5px; color: rgba(175,160,205,0.85);
+    margin-top: 4px; line-height: 1.5;
+  }
+
+  /* ── SCREEN 3: VENUES ───────────────────────────────── */
+  .venues-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px; width: 100%;
+  }
+  .venue-card {
+    background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(168,85,247,0.04) 100%);
+    border: 1px solid var(--border); border-radius: 24px;
+    padding: 26px 20px; text-align: center; cursor: pointer;
+    transition: all 0.35s ease; position: relative; overflow: hidden;
+  }
+  .venue-card::after {
+    content: ''; position: absolute; inset: 0; border-radius: 24px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.2) 0%, transparent 65%);
+    opacity: 0; transition: opacity 0.35s;
+  }
+  .venue-card:hover::after { opacity: 1; }
+  .venue-card:hover { border-color: rgba(168,85,247,0.6); transform: translateY(-6px); box-shadow: 0 24px 48px rgba(168,85,247,0.2); }
+  .venue-card.selected {
+    border-color: var(--gold);
+    background: linear-gradient(160deg, rgba(245,200,66,0.08) 0%, rgba(255,110,180,0.05) 100%);
+    box-shadow: 0 0 0 2px var(--gold), 0 24px 56px rgba(245,200,66,0.22);
+  }
+  .venue-card.selected::after {
+    background: radial-gradient(ellipse at 50% 0%, rgba(245,200,66,0.2) 0%, transparent 65%);
+    opacity: 1;
+  }
+  .venue-selected-tag {
+    position: absolute; top: 14px; right: 14px;
+    background: var(--gold); color: #000; font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 10px; border-radius: 100px;
+    opacity: 0; transform: scale(0.7); transition: all 0.3s ease;
+    text-transform: uppercase;
+  }
+  .venue-card.selected .venue-selected-tag { opacity: 1; transform: scale(1); }
+  .venue-emoji { font-size: 46px; margin-bottom: 14px; display: block; }
+  .venue-name { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .venue-vibe { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--purple); margin-bottom: 12px; }
+  .venue-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .venue-note { font-family: 'Dancing Script', cursive; font-size: 18px; color: var(--muted); text-align: center; min-height: 28px; transition: color 0.4s; }
+  .venue-note.chosen { color: var(--gold); }
+
+  /* ── SCREEN 4: THE ASK ──────────────────────────────── */
+  .ask-prelude {
+    font-family: 'Dancing Script', cursive; font-size: 22px;
+    color: var(--muted); text-align: center; letter-spacing: 0.5px;
+  }
+  .big-question {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(30px, 7vw, 52px);
+    text-align: center; line-height: 1.2;
+    background: linear-gradient(145deg, #fff 0%, var(--pink) 75%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .ask-divider { font-size: 28px; animation: float 2.8s ease-in-out infinite; }
+  .question-sub { font-size: 15px; color: var(--muted); text-align: center; line-height: 1.85; }
+
+  /* ── SCREEN 4: INFO CALLOUT ─────────────────────────── */
+  .ask-info { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+
+  .ask-venue-line {
+    font-size: 15px; text-align: center; color: var(--muted); line-height: 1.5;
+  }
+
+  .ask-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .ask-chip {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 22px; border-radius: 100px;
+    font-size: 15px; font-weight: 600;
+    border: 1.5px solid transparent;
+    backdrop-filter: blur(4px);
+  }
+  .ask-chip--date {
+    background: rgba(245,200,66,0.1);
+    border-color: rgba(245,200,66,0.4);
+    color: var(--gold); -webkit-text-fill-color: var(--gold);
+    box-shadow: 0 0 20px rgba(245,200,66,0.12);
+  }
+  .ask-chip--time {
+    background: rgba(168,85,247,0.1);
+    border-color: rgba(168,85,247,0.4);
+    color: #c4b5fd; -webkit-text-fill-color: #c4b5fd;
+    box-shadow: 0 0 20px rgba(168,85,247,0.12);
+  }
+
+  .ask-pickup {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,110,180,0.08);
+    border: 1px solid rgba(255,110,180,0.25);
+    border-radius: 100px; padding: 9px 22px;
+    font-size: 14px; font-weight: 500; color: var(--pink);
+    -webkit-text-fill-color: var(--pink);
+    animation: pickup-glow 3s ease-in-out infinite;
+  }
+  @keyframes pickup-glow {
+    0%,100% { box-shadow: 0 0 12px rgba(255,110,180,0.1); }
+    50%      { box-shadow: 0 0 28px rgba(255,110,180,0.22); }
+  }
+
+  .ask-closing {
+    font-size: 13px; color: rgba(175,160,205,0.7);
+    text-align: center; font-style: italic;
+  }
+  .btn-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .btn-yes {
+    padding: 18px 56px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff; font-size: 18px; font-weight: 700;
+    border: none; border-radius: 100px; cursor: pointer;
+    box-shadow: 0 8px 40px rgba(34,197,94,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+    animation: yes-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes yes-pulse {
+    0%,100% { box-shadow: 0 8px 40px rgba(34,197,94,0.5); }
+    50%      { box-shadow: 0 8px 60px rgba(34,197,94,0.75), 0 0 0 6px rgba(34,197,94,0.15); }
+  }
+  .btn-yes::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.25), transparent);
+    border-radius: 100px;
+  }
+  .btn-yes:hover { transform: scale(1.09); }
+  .btn-yes:active { transform: scale(0.96); }
+  .btn-no {
+    padding: 18px 56px; background: transparent;
+    color: var(--muted); font-size: 18px; font-weight: 400;
+    border: 1px solid var(--border); border-radius: 100px; cursor: pointer;
+    position: fixed; z-index: 999; user-select: none;
+  }
+  .no-msg {
+    font-family: 'Dancing Script', cursive; font-size: 19px;
+    color: var(--pink); text-align: center; min-height: 26px; font-style: italic;
+    transition: opacity 0.4s;
+  }
+
+  /* ── BUTTONS (shared) ───────────────────────────────── */
+  .btn-next {
+    padding: 14px 44px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: #fff; font-size: 15px; font-weight: 600;
+    border: none; border-radius: 100px; cursor: pointer;
+    box-shadow: 0 8px 32px rgba(168,85,247,0.35);
+    transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.4px;
+  }
+  .btn-next:hover  { transform: scale(1.05); box-shadow: 0 14px 44px rgba(168,85,247,0.55); }
+  .btn-next:active { transform: scale(0.97); }
+
+  /* ── SCREEN 5: YES — THE CROWN JEWEL ────────────────── */
+  #s-yes { background: radial-gradient(ellipse at 50% 30%, rgba(245,200,66,0.09) 0%, rgba(255,110,180,0.06) 40%, transparent 70%); }
+
+  .yes-heart {
+    font-size: 76px; line-height: 1;
+    animation: heartbeat 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 24px rgba(255,110,180,0.7)) drop-shadow(0 0 48px rgba(245,200,66,0.35));
+  }
+  @keyframes heartbeat {
+    0%   { transform: scale(1); }
+    14%  { transform: scale(1.2); }
+    28%  { transform: scale(1); }
+    42%  { transform: scale(1.13); }
+    70%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
+
+  .yes-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: clamp(44px, 11vw, 84px); line-height: 1.05;
+    text-align: center;
+    background: linear-gradient(90deg, #f5c842, #ff6eb4, #a855f7, #fb7185, #f5c842);
+    background-size: 400%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: shimmer-title 4s linear infinite;
+  }
+  @keyframes shimmer-title {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+
+  .yes-subtitle {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: clamp(15px, 2.5vw, 18px); color: var(--text);
+    text-align: center; line-height: 1.6;
+  }
+  .yes-subtitle span { font-size: 0.85em; color: var(--muted); display: block; margin-top: 4px; }
+
+  /* plan card — soft gold glow, blends into dark background */
+  .rainbow-card {
+    width: 100%; border-radius: 28px; padding: 30px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(245,200,66,0.25);
+    animation: card-glow 4s ease-in-out infinite;
+  }
+  @keyframes card-glow {
+    0%,100% {
+      box-shadow: 0 0 24px rgba(245,200,66,0.08), 0 0 50px rgba(255,110,180,0.04), 0 20px 50px rgba(0,0,0,0.5);
+      border-color: rgba(245,200,66,0.2);
+    }
+    50% {
+      box-shadow: 0 0 44px rgba(245,200,66,0.18), 0 0 80px rgba(255,110,180,0.09), 0 20px 50px rgba(0,0,0,0.5);
+      border-color: rgba(245,200,66,0.42);
+    }
+  }
+  .plan-card-title {
+    font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin-bottom: 20px;
+  }
+  .plan-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .plan-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .plan-icon { font-size: 22px; flex-shrink: 0; }
+  .plan-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
+  .plan-value { font-size: 15px; color: var(--text); margin-top: 3px; font-weight: 500; }
+
+  .yes-vows {
+    font-family: 'Dancing Script', cursive; font-size: 18px;
+    color: var(--muted); text-align: center; line-height: 2;
+    border-top: 1px solid var(--border); padding-top: 18px; width: 100%;
+  }
+  .yes-vows strong { color: var(--gold); font-weight: 600; }
+
+  /* ── PROGRESS DOTS ──────────────────────────────────── */
+  .progress-dots {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 100px; background: var(--border); transition: all 0.35s ease; }
+  .dot.active { background: var(--purple); width: 28px; }
+  .dot.done   { background: rgba(168,85,247,0.4); }
+
+  @media (max-width: 600px) {
+    /* compact venue cards — hide description, reduce size so all 3 + button fit on screen */
+    .venues-grid  { grid-template-columns: 1fr; gap: 10px; }
+    .venue-card   { padding: 13px 16px; border-radius: 18px; }
+    .venue-emoji  { font-size: 28px; margin-bottom: 6px; }
+    .venue-name   { font-size: 15px; margin-bottom: 3px; }
+    .venue-vibe   { font-size: 9px; margin-bottom: 5px; }
+    .venue-desc   { display: none; }
+    .venue-selected-tag { top: 8px; right: 10px; font-size: 9px; padding: 2px 8px; }
+    /* tighten the screen 3 wrapper gap so button is reachable without scrolling */
+    #s-venues .sc { gap: 14px; }
+
+    .btn-yes  { padding: 15px 40px; font-size: 16px; }
+    .btn-next { padding: 13px 36px; }
+    .yes-heart { font-size: 56px; }
+    .yes-title { font-size: clamp(38px, 10vw, 56px); }
+  }
+  </style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+<canvas id="hearts-canvas"></canvas>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="progress-dots">
+  <div class="dot active" id="dot-0"></div>
+  <div class="dot" id="dot-1"></div>
+  <div class="dot" id="dot-2"></div>
+  <div class="dot" id="dot-3"></div>
+  <div class="dot" id="dot-4"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     S1 · ENVELOPE
+════════════════════════════════════════════════════════ -->
+<div class="screen active" id="s-intro">
+  <div class="sc sc-xs" style="gap:24px">
+    <div class="badge">💌 A Love Letter of Sorts 💌</div>
+
+    <div class="envelope-wrap" id="env-btn">
+      <svg viewBox="0 0 280 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="40" width="272" height="146" rx="12" fill="#1e1535" stroke="rgba(168,85,247,0.5)" stroke-width="1.5"/>
+        <path id="env-flap"
+          d="M4 52 L140 120 L276 52 L276 40 Q276 40 264 40 L16 40 Q4 40 4 40 Z"
+          fill="#2a1f4a" stroke="rgba(168,85,247,0.5)" stroke-width="1.5"
+          style="transform-origin:140px 40px; transition: transform 0.8s cubic-bezier(.4,2,.55,1)"/>
+        <line x1="4"   y1="52" x2="140" y2="120" stroke="rgba(168,85,247,0.25)" stroke-width="1"/>
+        <line x1="276" y1="52" x2="140" y2="120" stroke="rgba(168,85,247,0.25)" stroke-width="1"/>
+        <circle id="env-seal" cx="140" cy="90" r="24" fill="#7c3aed" stroke="var(--gold)" stroke-width="1.5" style="transition:opacity 0.35s 0.2s"/>
+        <text x="140" y="98" text-anchor="middle" font-size="22" fill="var(--gold)">♥</text>
+      </svg>
+    </div>
+
+    <div class="envelope-label">Something important is waiting inside</div>
+    <div class="tap-hint">Go on, I know you're curious... ✨</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     S2 · REASONS
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-reasons">
+  <div class="sc sc-md">
+    <div class="section-title">A Few Very Compelling Reasons</div>
+    <div class="section-sub">Why you should say yes — a completely unbiased report</div>
+
+    <ul class="reasons-list" id="reasons-list">
+      <li>
+        <span class="icon">❤️</span>
+        <div>
+          <div class="reason-text">Because every beautiful love story deserves a <strong>beautiful beginning</strong></div>
+          <div class="reason-fine">And I have been quietly hoping ours might start with dinner.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">🌙</span>
+        <div>
+          <div class="reason-text">Because you deserve someone who actually <strong>plans ahead</strong></div>
+          <div class="reason-fine">I have been working up the courage to ask you for longer than I will admit.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">✨</span>
+        <div>
+          <div class="reason-text">Because Sunday evenings were <strong>invented for exactly this</strong></div>
+          <div class="reason-fine">Good food, warm lights, and you, specifically. That is the whole plan.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">🥂</span>
+        <div>
+          <div class="reason-text">Because the restaurants I picked are <strong>genuinely incredible</strong></div>
+          <div class="reason-fine">Though if I am being honest, you are the main attraction of the evening.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">🌹</span>
+        <div>
+          <div class="reason-text">Because if you say yes, it will <strong>honestly make my entire year</strong></div>
+          <div class="reason-fine">That is not an exaggeration. That is just the truth, plainly said.</div>
+        </div>
+      </li>
+    </ul>
+
+    <button class="btn-next" onclick="goTo(2)">Show me the venues →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     S3 · VENUES  (data attrs fix the Burma Burma bug)
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-venues">
+  <div class="sc sc-lg">
+    <div class="section-title">Where would you like our evening to begin?</div>
+    <div class="section-sub">Three beautiful places. All just around the corner. All chosen with you in mind.</div>
+
+    <div class="venues-grid" id="venues-grid">
+
+      <div class="venue-card"
+           data-name="Toit"
+           data-emoji="🍺"
+           data-vibe="Warm amber lights, legendary craft beer, incredible food — and the kind of company that makes every sip feel like a celebration.">
+        <div class="venue-selected-tag">Your choice</div>
+        <span class="venue-emoji">🍺</span>
+        <div class="venue-name">Toit</div>
+        <div class="venue-vibe">Legendary Brewpub</div>
+        <div class="venue-desc">Bangalore's most beloved brewpub. Warm amber lights, incredible food, and the kind of atmosphere where conversations bloom and time stands beautifully still.</div>
+      </div>
+
+      <div class="venue-card"
+           data-name="Fatty Bao"
+           data-emoji="🥢"
+           data-vibe="Bold flavours, electric energy, cocktails that dazzle — a feast for every sense, and the perfect backdrop for us.">
+        <div class="venue-selected-tag">Your choice</div>
+        <span class="venue-emoji">🥢</span>
+        <div class="venue-name">Fatty Bao</div>
+        <div class="venue-vibe">Bold Asian Gastropub</div>
+        <div class="venue-desc">Asian small plates, electric atmosphere, cocktails that genuinely dazzle. Dinner that does not just feed you — it sweeps you off your feet entirely.</div>
+      </div>
+
+      <div class="venue-card"
+           data-name="Burma Burma"
+           data-emoji="🍜"
+           data-vibe="Enchanting Burmese cuisine, a candle-lit ambiance that feels like a dream — an evening that belongs in a love story.">
+        <div class="venue-selected-tag">Your choice</div>
+        <span class="venue-emoji">🍜</span>
+        <div class="venue-name">Burma Burma</div>
+        <div class="venue-vibe">Enchanting &amp; Intimate</div>
+        <div class="venue-desc">Exquisite Burmese cuisine in an ambiance that feels like stepping into a dream. The kind of restaurant that turns an ordinary evening into the opening scene of something beautiful.</div>
+      </div>
+
+    </div>
+
+    <div class="venue-note" id="venue-note">Choose the place where our story begins 💫</div>
+    <button class="btn-next" id="btn-venue-next" onclick="confirmVenue()" style="opacity:0.3;pointer-events:none;transition:opacity 0.3s,box-shadow 0.3s">
+      Lock it in — let's go →
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     S4 · THE ASK
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-ask">
+  <div class="sc sc-sm" style="gap:24px">
+    <div class="ask-prelude">Just one question for you...</div>
+
+    <div class="big-question">
+      Will you let me take you<br/>to dinner this Sunday?
+    </div>
+
+    <div class="ask-divider">💕</div>
+
+    <div class="ask-info">
+      <div class="ask-venue-line">
+        At <strong id="ask-venue-name" style="color:var(--gold);-webkit-text-fill-color:var(--gold)">the venue</strong>
+        <span style="color:var(--muted)"> · Indiranagar, Bangalore</span>
+      </div>
+
+      <div class="ask-chips">
+        <div class="ask-chip ask-chip--date">📅 Sunday, July 6</div>
+        <div class="ask-chip ask-chip--time">🕔 5:00 PM</div>
+      </div>
+
+      <div class="ask-pickup">🚗 I will pick you up — just be ready 💕</div>
+
+      <div class="ask-closing">Just you, me, and an evening worth remembering forever</div>
+    </div>
+
+    <div class="btn-row" id="btn-row">
+      <button class="btn-yes" onclick="sayYes()">Yes, I would love that 💕</button>
+      <button class="btn-no" id="btn-no" onclick="noAttempt()" onmouseover="flee(this)">No thank you</button>
+    </div>
+
+    <div class="no-msg" id="no-msg"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     S5 · YES — THE MOST BEAUTIFUL SCREEN
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-yes">
+  <div class="sc sc-md" style="gap:22px">
+
+    <div class="yes-heart">💖</div>
+
+    <div class="yes-title">You just made my whole world</div>
+
+    <div class="yes-subtitle">
+      And honestly — probably my whole year too.
+      <span>I am not even being dramatic. This is me being completely calm.</span>
+    </div>
+
+    <div class="rainbow-card">
+      <div class="plan-card-title">✨ Our Evening · The Official Plan</div>
+      <div class="plan-row">
+        <div class="plan-icon">🍽️</div>
+        <div>
+          <div class="plan-label">Where we are going</div>
+          <div class="plan-value" id="yes-venue">—</div>
+        </div>
+      </div>
+      <div class="plan-row">
+        <div class="plan-icon">📅</div>
+        <div>
+          <div class="plan-label">When</div>
+          <div class="plan-value">This Sunday · July 6, 2026</div>
+        </div>
+      </div>
+      <div class="plan-row">
+        <div class="plan-icon">🕢</div>
+        <div>
+          <div class="plan-label">Time</div>
+          <div class="plan-value">5:00 PM · I will handle every last detail</div>
+        </div>
+      </div>
+      <div class="plan-row">
+        <div class="plan-icon">🚗</div>
+        <div>
+          <div class="plan-label">Getting there</div>
+          <div class="plan-value">I will pick you up — just be ready 💕</div>
+        </div>
+      </div>
+      <div class="plan-row">
+        <div class="plan-icon">💕</div>
+        <div>
+          <div class="plan-label">The vibe</div>
+          <div class="plan-value" id="yes-vibe">An evening worth remembering.</div>
+        </div>
+      </div>
+      <div class="plan-row">
+        <div class="plan-icon">🌹</div>
+        <div>
+          <div class="plan-label">Company</div>
+          <div class="plan-value">You. Just you. That is more than enough.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="yes-vows">
+      I promise to make you smile <strong>all evening</strong>.<br/>
+      I promise the food will be <strong>extraordinary</strong>.<br/>
+      I promise this is just <strong>the beginning</strong>. 🌹
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════════════════════ -->
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const THEIR_NAME = ""; // swap in her name if you like e.g. "Priya"
+
+// ── STATE ─────────────────────────────────────────────────
+let currentScreen   = 0;
+let selectedVenue   = null;
+let selectedVenueVibe = null;
+let noAttempts      = 0;
+
+// ── STARS ─────────────────────────────────────────────────
+(function () {
+  const c = document.getElementById('stars-canvas');
+  const x = c.getContext('2d');
+  let S, W, H;
+  const resize = () => { W = c.width = innerWidth; H = c.height = innerHeight; };
+  const make   = () => S = Array.from({length:200}, () => ({
+    px: Math.random()*W, py: Math.random()*H,
+    r: Math.random()*1.6+0.2, a: Math.random(),
+    s: 0.002+Math.random()*0.003, d: Math.random()>.5?1:-1
+  }));
+  const draw = () => {
+    x.clearRect(0,0,W,H);
+    S.forEach(s => {
+      s.a += s.s*s.d;
+      if(s.a>=1||s.a<=0) s.d*=-1;
+      x.beginPath(); x.arc(s.px,s.py,s.r,0,Math.PI*2);
+      x.fillStyle=`rgba(255,255,255,${s.a*.85})`; x.fill();
+    });
+    requestAnimationFrame(draw);
+  };
+  resize(); make(); draw();
+  addEventListener('resize',()=>{resize();make();});
+})();
+
+// ── HEARTS CANVAS ─────────────────────────────────────────
+// Beautiful canvas-drawn hearts floating up with sway
+(function () {
+  const c = document.getElementById('hearts-canvas');
+  const x = c.getContext('2d');
+  let W, H, items = [];
+  const SYMBOLS = ['❤️','💕','🌸','🌹','✨','💫','🥂','💗'];
+  const resize = () => { W = c.width = innerWidth; H = c.height = innerHeight; };
+
+  function spawnHeart() {
+    items.push({
+      sym:   SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)],
+      x:     Math.random()*W,
+      y:     H + 20,
+      vy:    0.5 + Math.random()*0.8,
+      vx:    (Math.random()-.5)*0.4,
+      size:  14 + Math.random()*22,
+      alpha: 0,
+      life:  0,           // 0→1→0
+      dur:   220 + Math.random()*180,
+      phase: Math.random()*Math.PI*2,
+      sway:  18 + Math.random()*25
+    });
+  }
+
+  let frame = 0;
+  function draw() {
+    x.clearRect(0,0,W,H);
+    frame++;
+    if(frame % 90 === 0) spawnHeart();
+
+    items = items.filter(h => h.y > -40 && h.life < 1.1);
+    items.forEach(h => {
+      h.life += 1/h.dur;
+      h.y    -= h.vy;
+      h.x    += h.vx + Math.sin(h.life*Math.PI*4 + h.phase)*0.4;
+      const a = h.life < 0.15 ? h.life/0.15
+              : h.life > 0.8  ? 1-(h.life-0.8)/0.2
+              : 1;
+      x.save();
+      x.globalAlpha = a * 0.55;
+      x.font = `${h.size}px serif`;
+      x.textAlign = 'center';
+      x.fillText(h.sym, h.x, h.y);
+      x.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  // seed a few immediately
+  for(let i=0; i<6; i++) {
+    spawnHeart();
+    items[i].y = Math.random()*H;
+    items[i].life = Math.random()*0.6;
+  }
+
+  resize(); draw();
+  addEventListener('resize', resize);
+})();
+
+// ── CONFETTI ──────────────────────────────────────────────
+(function () {
+  const c = document.getElementById('confetti-canvas');
+  const x = c.getContext('2d');
+  let W, H, pieces=[], active=false, raf;
+  const COLS=['#f5c842','#ff6eb4','#a855f7','#22c55e','#38bdf8','#fb923c','#fff','#fb7185'];
+  const resize=()=>{W=c.width=innerWidth;H=c.height=innerHeight;};
+  const spawn=(n=240)=>{
+    for(let i=0;i<n;i++) pieces.push({
+      x:Math.random()*W,
+      y:-8-Math.random()*60,          // start close to top so they appear immediately
+      w:9+Math.random()*13, h:6+Math.random()*9, // bigger for mobile
+      vx:(Math.random()-.5)*5, vy:5+Math.random()*7, // faster fall
+      rot:Math.random()*360, rotV:(Math.random()-.5)*8,
+      col:COLS[Math.floor(Math.random()*COLS.length)],
+      circ:Math.random()>.6
+    });
+  };
+  const draw=()=>{
+    x.clearRect(0,0,W,H);
+    pieces=pieces.filter(p=>p.y<H+40);
+    pieces.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.rotV; p.vy+=0.06;
+      x.save(); x.translate(p.x,p.y); x.rotate(p.rot*Math.PI/180);
+      // fully opaque until the bottom 15% of screen, then fade out
+      x.globalAlpha = p.y < H*0.85 ? 1 : Math.max(0,(H-p.y)/(H*0.15));
+      x.fillStyle=p.col;
+      p.circ?(x.beginPath(),x.arc(0,0,p.w/2,0,Math.PI*2),x.fill())
+            :x.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      x.restore();
+    });
+    if(active||pieces.length) raf=requestAnimationFrame(draw);
+    else x.clearRect(0,0,W,H);
+  };
+  window.launchConfetti=()=>{
+    // force fresh canvas dimensions every time
+    W=c.width=innerWidth; H=c.height=innerHeight;
+    pieces=[]; active=true;
+    spawn(260);
+    setTimeout(()=>spawn(180),350);
+    setTimeout(()=>spawn(120),800);
+    setTimeout(()=>{active=false;},3000);
+    cancelAnimationFrame(raf); raf=requestAnimationFrame(draw);
+  };
+  resize(); addEventListener('resize',resize);
+})();
+
+// ── NAVIGATION ────────────────────────────────────────────
+const SCREENS=['s-intro','s-reasons','s-venues','s-ask','s-yes'];
+
+function goTo(n) {
+  document.getElementById(SCREENS[currentScreen]).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(SCREENS[n]).classList.add('active');
+  for(let i=0;i<5;i++){
+    const d=document.getElementById('dot-'+i);
+    d.className='dot'+(i===n?' active':i<n?' done':'');
+  }
+  if(n===1) animateReasons();
+  if(n===3) placeNoBtn();
+}
+
+// ── ENVELOPE ──────────────────────────────────────────────
+document.getElementById('env-btn').addEventListener('click',()=>{
+  document.getElementById('env-flap').style.transform='rotateX(180deg)';
+  document.getElementById('env-seal').style.opacity='0';
+  setTimeout(()=>goTo(1),800);
+});
+
+// ── REASONS ───────────────────────────────────────────────
+function animateReasons(){
+  document.querySelectorAll('#reasons-list li').forEach((li,i)=>
+    setTimeout(()=>li.classList.add('visible'), 100+i*210)
+  );
+}
+
+// ── VENUES (data attributes — no apostrophe JS parsing bug) ─
+document.querySelectorAll('.venue-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    document.querySelectorAll('.venue-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedVenue     = card.dataset.name;
+    selectedVenueVibe = card.dataset.vibe;
+    const note = document.getElementById('venue-note');
+    note.textContent = card.dataset.emoji + ' Exquisite taste. As expected. 💫';
+    note.classList.add('chosen');
+    const btn = document.getElementById('btn-venue-next');
+    btn.style.opacity      = '1';
+    btn.style.pointerEvents = 'auto';
+    // on mobile, scroll the proceed button into view so user knows what to do next
+    if (innerWidth <= 600) {
+      setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    }
+  });
+});
+
+function confirmVenue(){
+  if(!selectedVenue){ selectedVenue='Toit'; selectedVenueVibe='Warm amber lights, legendary craft beer, incredible food.'; }
+  document.getElementById('ask-venue-name').textContent = selectedVenue;
+  goTo(3);
+}
+
+// ── NO BUTTON ─────────────────────────────────────────────
+const noMessages = [
+  "That button is purely decorative, my dear 💕",
+  "My heart just broke a little. Please reconsider.",
+  "The heart knows what it wants — listen to yours.",
+  "Error 404: No is unavailable this Sunday 🙈",
+  "Have you seen those restaurants? The food alone is worth it.",
+  "I promise to be absolutely wonderful company. Mostly. 🥺",
+  "I have been thinking about asking you for a while now.",
+  "Just you, me, and really extraordinary food. That is all.",
+  "One dinner. That is all. Though I am hoping it is the first of many 🌹",
+  "The No button has retired to a farm upstate. Say yes, darling. 💕"
+];
+
+function placeNoBtn(){
+  const btn = document.getElementById('btn-no');
+  const yes = document.querySelector('.btn-yes');
+  const r   = yes.getBoundingClientRect();
+  const btnW = btn.offsetWidth || 160;
+  btn.style.left    = (r.left + (r.width - btnW) / 2) + 'px';
+  btn.style.top     = (r.bottom + 14) + 'px';
+  btn.style.display = 'block';
+
+  // On touch devices: intercept touchstart so the button flees before a tap registers
+  btn.addEventListener('touchstart', function(e){
+    e.preventDefault();  // suppresses the subsequent click event
+    noAttempt();
+  }, { passive: false, once: false });
+}
+
+function noAttempt(){
+  noAttempts++;
+  const btn=document.getElementById('btn-no');
+  const msg=document.getElementById('no-msg');
+  if(noAttempts>=noMessages.length){ btn.style.display='none'; msg.textContent=noMessages[noMessages.length-1]; return; }
+  msg.textContent=noMessages[noAttempts-1];
+  flee(btn);
+}
+
+function flee(btn){
+  const m=80;
+  const x=m+Math.random()*Math.max(0,innerWidth -(btn.offsetWidth ||140)-m*2);
+  const y=m+Math.random()*Math.max(0,innerHeight-(btn.offsetHeight|| 56)-m*2);
+  btn.style.transition='left 0.22s cubic-bezier(.4,2,.55,1),top 0.22s cubic-bezier(.4,2,.55,1)';
+  btn.style.left=x+'px'; btn.style.top=y+'px';
+}
+
+// ── YES ───────────────────────────────────────────────────
+async function sayYes(){
+  document.getElementById('btn-no').style.display='none';
+  const v=selectedVenue     ||'Toit';
+  const vibe=selectedVenueVibe||'Warm amber lights, legendary craft beer, incredible food.';
+  document.getElementById('yes-venue').textContent = v+', Indiranagar';
+  document.getElementById('yes-vibe').textContent  = vibe;
+  goTo(4);
+  launchConfetti();
+  setTimeout(launchConfetti,1100);
+  // Notify you via Vercel serverless — see api/notify.js for setup
+  try{ await fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({venue:v,vibe})}); }catch(_){}
+}
+</script>
+</body>
+</html>
